@@ -411,7 +411,7 @@ export default function App() {
 
         <GlassCard title="CONTACTS" color="text-purple-400" delay="0.5s">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-[12px] tracking-tighter">
-            {[["Pritam", "7863986430"], ["Ashna", "9874140007"], ["Rupsa", "9831464699"], ["Nakul", "8240309231"]].map(([name, phone]) => (
+            {[["Pritam", "7863986430"], ["Ashna", "9874140007"], ["Rupsa", "9831464699"], ["Nakul", "8240309231"], ["Tanishtha", "8584835901"]].map(([name, phone]) => (
               <div key={name} className="flex flex-col gap-2 p-4 bg-white/5 rounded-xl border border-white/10 hover:border-orange-400/50 transition-colors">
                 <span className="text-orange-400 uppercase font-bold text-[10px] tracking-widest">{name}</span>
                 <span className="text-white font-mono">{phone}</span>
