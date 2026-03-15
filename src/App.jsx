@@ -177,7 +177,7 @@ export default function App() {
       <div 
         className="fixed inset-0 z-0 bg-cover bg-center transition-all duration-300 ease-out dynamic-sunset"
         style={{ 
-          backgroundImage: `linear-gradient(${sunsetColor}, ${nightColor}), url('/unnamed.jpg')`,
+          backgroundImage: `linear-gradient(${sunsetColor}, ${nightColor}), url('unnamed.jpg')`,
           backgroundPosition: `50% ${scrollProgress * 100}%`
         }}
       />
