@@ -290,7 +290,7 @@ export default function App() {
             RetroHack is an 8-hour long hackathon organized by the <span className="text-white font-bold">CSI UEMK Student Chapter</span> to test the mettle of students between the two IEM campuses.
           </p>
           <p>
-            The event is scheduled for <span className="text-cyan-400">28th March, 2026, </span><span className="text-yellow-400">9:00 AM onwards</span>. Prepare your logic, optimize your pixels, and drive toward the sunset.
+            The event is scheduled for <span className="text-cyan-400">28th March, 2026, </span><span className="text-yellow-400">9:00 AM onwards</span>. Prepare your logic, set your screens and prepare for 28th!
           </p>
         </GlassCard>
 
