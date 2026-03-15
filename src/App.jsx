@@ -272,7 +272,7 @@ export default function App() {
       <div className="relative z-10 max-w-4xl mx-auto py-20 px-6">
         
         <header className="text-center mb-32 h-[90vh] flex flex-col justify-center items-center">
-          <h1 className="text-6xl md:text-9xl font-black italic tracking-tighter text-white drop-shadow-[0_15px_40px_rgba(0,0,0,1)] uppercase">
+          <h1 className="text-[14vw] sm:text-7xl md:text-9xl font-black italic tracking-tighter text-white drop-shadow-[0_15px_40px_rgba(0,0,0,1)] uppercase">
             RETRO<span className="text-pink-500 text-pink">HACK</span>
           </h1>
           <Countdown />
