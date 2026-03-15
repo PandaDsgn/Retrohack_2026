@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 const Countdown = () => {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, mins: 0, secs: 0 });
@@ -25,12 +25,10 @@ const Countdown = () => {
   }, []);
 
   return (
-    // Change "font-mono" to "font-sans" or just remove it
     <div className="flex gap-4 md:gap-6 justify-center my-10"> 
       {Object.entries(timeLeft).map(([label, value]) => (
         <div key={label} className="flex flex-col items-center">
           <div className="glass-gloss bg-black/20 border border-white/10 w-14 h-14 md:w-20 md:h-20 flex items-center justify-center rounded-2xl mb-2 backdrop-blur-md">
-            {/* Removed font-black and added tracking-tighter to match your Hero title style */}
             <span className="text-lg md:text-3xl font-bold text-white tracking-tighter drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">
               {String(value).padStart(2, '0')}
             </span>
@@ -46,7 +44,7 @@ const StatusOverlay = ({ status, onClose, message }) => {
   if (status === 'idle' || status === 'submitting') {
     return status === 'submitting' ? (
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md">
-        <div className="text-cyan-400 text-xl animate-pulse tracking-[0.5em] font-bold uppercase">Checking...</div>
+        <div className="text-cyan-400 text-xl animate-pulse tracking-[0.5em] font-bold uppercase">Processing...</div>
       </div>
     ) : null;
   }
@@ -57,7 +55,7 @@ const StatusOverlay = ({ status, onClose, message }) => {
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-xl p-6">
       <div className={`max-w-md w-full glass-gloss border-2 p-12 text-center rounded-[3rem] ${isSuccess ? 'border-green-500 shadow-[0_0_30px_rgba(34,197,94,0.3)]' : 'border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.3)]'}`}>
         <h2 className={`text-3xl font-black mb-6 uppercase ${isSuccess ? 'text-green-500' : 'text-red-500'}`}>
-          {status === 'success' ? 'Registered' : status === 'found' ? 'Team Found' : 'Error'}
+          {status === 'success' ? 'Confirmed' : status === 'found' ? 'Team Found' : 'Error'}
         </h2>
         <p className="text-white text-xs mb-10 leading-relaxed font-medium">
           {message}
@@ -88,7 +86,7 @@ const GlassCard = ({ title, color, children, delay }) => (
   </div>
 );
 
-const InputField = ({ label, placeholder, type = "text", required, name }) => (
+const InputField = ({ label, placeholder, type = "text", required, name, maxLength }) => (
   <div className="flex flex-col gap-2 w-full">
     <label className="text-[8px] uppercase tracking-widest text-white/60 ml-1">
       {label} {required && <span className="text-pink-500">*</span>}
@@ -98,6 +96,7 @@ const InputField = ({ label, placeholder, type = "text", required, name }) => (
       type={type} 
       placeholder={placeholder} 
       required={required}
+      maxLength={maxLength}
       className="bg-black/40 border border-white/10 rounded-xl p-3 text-white outline-none focus:border-cyan-400 transition-all placeholder:opacity-20 text-[10px] w-full" 
     />
   </div>
@@ -105,11 +104,21 @@ const InputField = ({ label, placeholder, type = "text", required, name }) => (
 
 export default function App() {
   const [scrollProgress, setScrollProgress] = useState(0);
-  const [members, setMembers] = useState([1]);
+  
+  // CHANGED: Default state starts with 2 members
+  const [members, setMembers] = useState([1, 2]);
   const [status, setStatus] = useState('idle'); 
   const [overlayMessage, setOverlayMessage] = useState('');
+  
+  // Edit State
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [leaderEmail, setLeaderEmail] = useState('');
+  const [editPin, setEditPin] = useState('');
+  
+  const formRef = useRef(null);
 
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxibWo1TZh6oAzE6wzFNgzEJEUl1zy6ZzWfp-5_TFNeqdAWeLCYh-wAPH1_jDuso76b/exec";
+  // YOUR GOOGLE APPS SCRIPT URL HERE
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbywnfM4jzNx6z5-ZQcuoCeNjabAZolJO6ghjoAHsUkT952fmfmd2k_oce74TwzNXgLH/exec";
 
   useEffect(() => {
     const handleScroll = () => {
@@ -125,19 +134,85 @@ export default function App() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setStatus('submitting');
-    const formData = new FormData(e.target);
+    
+    const formDataObj = Object.fromEntries(new FormData(e.target));
+    const payload = {
+      action: isEditMode ? 'update' : 'register',
+      email: isEditMode ? leaderEmail : formDataObj['Member1_Email'],
+      pin: isEditMode ? editPin : formDataObj['Edit_PIN'], 
+      formData: formDataObj
+    };
+
+    const sendData = new FormData();
+    sendData.append("payload", JSON.stringify(payload));
 
     try {
-      const response = await fetch(SCRIPT_URL, { method: 'POST', body: formData });
-      if (response.ok) {
-        setOverlayMessage('Your team has been successfully registered. See you on March 28th.');
+      const response = await fetch(SCRIPT_URL, { 
+        method: 'POST', 
+        body: sendData
+      });
+      
+      const result = await response.json();
+      
+      if (result.status === 'success') {
+        setOverlayMessage(isEditMode ? 'Team details updated successfully.' : 'Your team has been successfully registered. See you on March 28th.');
         setStatus('success');
-        e.target.reset();
+        if (!isEditMode) e.target.reset();
+        
+        setIsEditMode(false);
+        setLeaderEmail('');
+        setEditPin('');
+        setMembers([1, 2]); // Reset to 2 members after submission
       } else {
-        throw new Error();
+        throw new Error(result.message || "Operation failed");
       }
     } catch (err) {
-      setOverlayMessage('Critical error during registration. Please check your connection and try again.');
+      setOverlayMessage(err.message || 'Critical error during processing. Please check your connection.');
+      setStatus('error');
+    }
+  };
+
+  const handleVerifyUnlock = async () => {
+    if (!leaderEmail || !editPin) return;
+    setStatus('submitting');
+    
+    const payload = { action: 'verifyEdit', email: leaderEmail, pin: editPin };
+    
+    const sendData = new FormData();
+    sendData.append("payload", JSON.stringify(payload));
+
+    try {
+      const response = await fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: sendData
+      });
+      
+      const result = await response.json();
+      
+      if (result.status === 'success') {
+        setStatus('idle');
+        setIsEditMode(true);
+        
+        const data = result.data;
+        if (formRef.current) {
+          Object.keys(data).forEach(key => {
+            if (formRef.current.elements[key]) {
+              formRef.current.elements[key].value = data[key];
+            }
+          });
+        }
+        
+        let count = 1;
+        while(data[`Member${count+1}_Name`]) count++;
+        // CHANGED: Math.max ensures it never drops below 2 fields during edit
+        setMembers(Array.from({length: Math.max(2, count)}, (_, i) => i + 1));
+        
+        formRef.current?.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        throw new Error(result.message);
+      }
+    } catch (err) {
+      setOverlayMessage(err.message || 'Failed to verify team. Check your Email and PIN.');
       setStatus('error');
     }
   };
@@ -146,14 +221,24 @@ export default function App() {
     const email = document.getElementById('checkEmail').value;
     if (!email) return;
     setStatus('submitting');
+    
+    const payload = { action: 'check', email: email };
+    
+    const sendData = new FormData();
+    sendData.append("payload", JSON.stringify(payload));
+
     try {
-      const res = await fetch(`${SCRIPT_URL}?email=${email}`);
+      const res = await fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: sendData
+      });
+      
       const data = await res.json();
       if (data.status === 'found') {
         setOverlayMessage(`Team "${data.team}" is registered.`);
         setStatus('found');
       } else {
-        setOverlayMessage('This email is not linked to any registered team.');
+        setOverlayMessage(data.message || 'This email is not linked to any registered team.');
         setStatus('error');
       }
     } catch (err) {
@@ -163,7 +248,9 @@ export default function App() {
   };
 
   const addMember = () => members.length < 5 && setMembers([...members, members.length + 1]);
-  const removeMember = () => members.length > 1 && setMembers(members.slice(0, -1));
+  
+  // CHANGED: Only allow removing if there are more than 2 members
+  const removeMember = () => members.length > 2 && setMembers(members.slice(0, -1));
 
   const overlayAlpha = 0.4 + (scrollProgress * 0.4);
   const sunsetColor = `rgba(${255 - scrollProgress * 150}, ${100 - scrollProgress * 100}, ${50 + scrollProgress * 50}, ${overlayAlpha})`;
@@ -206,11 +293,25 @@ export default function App() {
           </p>
         </GlassCard>
 
-        <GlassCard title="REGISTRATION PANEL" color="text-cyan-400" delay="0.2s">
-          <form className="space-y-12" onSubmit={handleSubmit}>
-            <div className="p-6 bg-cyan-500/10 border border-cyan-500/30 rounded-2xl flex flex-col gap-6">
-              <InputField label="Team Name" name="TeamName" placeholder="ENTER TEAM NAME" required={true}/>
-              <InputField label="Campus Name" name="CampusName" placeholder="ENTER CAMPUS NAME" required={true}/>
+        <GlassCard title={isEditMode ? "EDITING REGISTRATION" : "REGISTRATION PANEL"} color={isEditMode ? "text-orange-400" : "text-cyan-400"} delay="0.2s">
+          {isEditMode && (
+             <div className="mb-6 p-4 bg-orange-500/20 border border-orange-500/50 rounded-xl text-orange-400 text-xs font-bold tracking-widest uppercase">
+               Editing as: {leaderEmail}
+             </div>
+          )}
+          
+          <form ref={formRef} className="space-y-12" onSubmit={handleSubmit}>
+            <div className="p-6 bg-white/5 border border-white/20 rounded-2xl flex flex-col gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <InputField label="Team Name" name="TeamName" placeholder="ENTER TEAM NAME" required={true}/>
+                <InputField label="Campus Name" name="CampusName" placeholder="ENTER CAMPUS NAME" required={true}/>
+              </div>
+              {!isEditMode && (
+                <div className="mt-2 border-t border-white/10 pt-4">
+                   <p className="text-[9px] text-pink-400 mb-2 uppercase tracking-widest font-bold">Create a Secret PIN to edit your form later</p>
+                   <InputField label="Secret Edit PIN" name="Edit_PIN" type="password" placeholder="e.g. 4040" required={true} maxLength={6}/>
+                </div>
+              )}
             </div>
 
             {members.map((num) => (
@@ -237,7 +338,8 @@ export default function App() {
                     + Add Member ({members.length}/5)
                   </button>
                 )}
-                {members.length > 1 && (
+                {/* CHANGED: Condition ensures button only shows if there are more than 2 members */}
+                {members.length > 2 && (
                   <button type="button" onClick={removeMember} className="flex-1 bg-red-500/10 border border-red-500/20 text-red-400 py-4 rounded-xl hover:bg-red-500/20 transition-all text-[9px] font-bold tracking-widest uppercase active:scale-95">
                     - Remove Member
                   </button>
@@ -245,16 +347,48 @@ export default function App() {
               </div>
               <button 
                 type="submit" 
-                className="w-full bg-cyan-500 text-black font-black py-6 rounded-2xl hover:bg-pink-500 hover:text-white shadow-[0_0_30px_rgba(34,211,238,0.4)] transition-all uppercase tracking-widest text-xs active:scale-95 disabled:opacity-50"
+                className={`w-full font-black py-6 rounded-2xl shadow-[0_0_30px_rgba(34,211,238,0.4)] transition-all uppercase tracking-widest text-xs active:scale-95 disabled:opacity-50 ${isEditMode ? 'bg-orange-400 text-black hover:bg-orange-300' : 'bg-cyan-500 text-black hover:bg-pink-500 hover:text-white'}`}
                 disabled={status === 'submitting'}
               >
-                {status === 'submitting' ? 'Checking...' : 'Register'}
+                {status === 'submitting' ? 'Processing...' : (isEditMode ? 'Update Registration' : 'Register')}
               </button>
             </div>
           </form>
         </GlassCard>
 
-        <GlassCard title="REGISTRATION CHECK" color="text-yellow-400" delay="0.3s">
+        {!isEditMode && (
+          <GlassCard title="EDIT REGISTRATION" color="text-orange-400" delay="0.3s">
+            <div className="flex flex-col gap-6">
+              <p className="text-white/60 text-[10px] leading-relaxed">Made a typo? Enter the Team Leader's email and your Secret PIN to unlock your registration.</p>
+              
+              <div className="flex flex-col sm:flex-row gap-4">
+                <input 
+                  type="email"
+                  value={leaderEmail}
+                  onChange={(e) => setLeaderEmail(e.target.value)}
+                  placeholder="Leader Email" 
+                  className="flex-1 bg-black/40 border border-white/10 rounded-xl p-4 text-white outline-none focus:border-orange-400 transition-all placeholder:opacity-20 text-[10px]"
+                />
+                <input 
+                  type="password"
+                  value={editPin}
+                  onChange={(e) => setEditPin(e.target.value)}
+                  placeholder="Secret PIN" 
+                  maxLength={6}
+                  className="w-full sm:w-32 bg-black/40 border border-white/10 rounded-xl p-4 text-white outline-none focus:border-orange-400 transition-all placeholder:opacity-20 text-[10px] text-center"
+                />
+                <button 
+                  onClick={handleVerifyUnlock}
+                  className="bg-orange-400 text-black px-8 py-4 rounded-xl font-bold text-[10px] hover:bg-orange-300 transition-all active:scale-95 uppercase tracking-widest"
+                >
+                  Unlock
+                </button>
+              </div>
+            </div>
+          </GlassCard>
+        )}
+
+        <GlassCard title="REGISTRATION CHECK" color="text-yellow-400" delay="0.4s">
           <div className="flex flex-col gap-6">
             <p className="text-white/60 text-[10px] leading-relaxed">Verify if your team's registration is active. Enter the Team Leader's email address below.</p>
             <div className="flex flex-col sm:flex-row gap-4">
@@ -274,7 +408,7 @@ export default function App() {
           </div>
         </GlassCard>
 
-        <GlassCard title="CONTACTS" color="text-purple-400" delay="0.4s">
+        <GlassCard title="CONTACTS" color="text-purple-400" delay="0.5s">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-[12px] tracking-tighter">
             {[["Pritam", "7863986430"], ["Ashna", "9874140007"], ["Rupsa", "9831464699"], ["Nakul", "8240309231"]].map(([name, phone]) => (
               <div key={name} className="flex flex-col gap-2 p-4 bg-white/5 rounded-xl border border-white/10 hover:border-orange-400/50 transition-colors">
