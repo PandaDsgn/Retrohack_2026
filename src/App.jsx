@@ -271,9 +271,10 @@ export default function App() {
 
       <div className="relative z-10 max-w-4xl mx-auto py-20 px-6">
         
-        <header className="text-center mb-32 h-[90vh] flex flex-col justify-center items-center">
-          <h1 className="text-[14vw] sm:text-7xl md:text-9xl font-black italic tracking-tighter text-white drop-shadow-[0_15px_40px_rgba(0,0,0,1)] uppercase">
-            RETRO<span className="text-pink-500 text-pink">HACK</span>
+        <header className="text-center mb-32 h-[90vh] flex flex-col justify-center items-center w-full">
+          {/* The fix: text-[10vw] for mobile, scaling up gracefully on larger screens */}
+          <h1 className="text-[10vw] sm:text-6xl md:text-8xl lg:text-9xl font-black italic tracking-tighter text-white drop-shadow-[0_15px_40px_rgba(0,0,0,1)] uppercase leading-none whitespace-nowrap">
+            RETRO<span className="text-pink-500">HACK</span>
           </h1>
           <Countdown />
           <div className="mt-4 flex flex-col items-center gap-4">
