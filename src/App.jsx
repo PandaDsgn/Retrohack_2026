@@ -102,22 +102,35 @@ const InputField = ({ label, placeholder, type = "text", required, name, maxLeng
   </div>
 );
 
+// NEW: TextArea component for the Idea Submission
+const TextAreaField = ({ label, placeholder, required, name, rows = 4 }) => (
+  <div className="flex flex-col gap-2 w-full">
+    <label className="text-[8px] uppercase tracking-widest text-white/60 ml-1">
+      {label} {required && <span className="text-pink-500">*</span>}
+    </label>
+    <textarea 
+      name={name}
+      placeholder={placeholder} 
+      required={required}
+      rows={rows}
+      className="bg-black/40 border border-white/10 rounded-xl p-3 text-white outline-none focus:border-cyan-400 transition-all placeholder:opacity-20 text-[10px] w-full resize-none" 
+    />
+  </div>
+);
+
 export default function App() {
   const [scrollProgress, setScrollProgress] = useState(0);
   
-  // CHANGED: Default state starts with 2 members
   const [members, setMembers] = useState([1, 2]);
   const [status, setStatus] = useState('idle'); 
   const [overlayMessage, setOverlayMessage] = useState('');
   
-  // Edit State
   const [isEditMode, setIsEditMode] = useState(false);
   const [leaderEmail, setLeaderEmail] = useState('');
   const [editPin, setEditPin] = useState('');
   
   const formRef = useRef(null);
 
-  // YOUR GOOGLE APPS SCRIPT URL HERE
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbywnfM4jzNx6z5-ZQcuoCeNjabAZolJO6ghjoAHsUkT952fmfmd2k_oce74TwzNXgLH/exec";
 
   useEffect(() => {
@@ -162,7 +175,7 @@ export default function App() {
         setIsEditMode(false);
         setLeaderEmail('');
         setEditPin('');
-        setMembers([1, 2]); // Reset to 2 members after submission
+        setMembers([1, 2]); 
       } else {
         throw new Error(result.message || "Operation failed");
       }
@@ -204,7 +217,6 @@ export default function App() {
         
         let count = 1;
         while(data[`Member${count+1}_Name`]) count++;
-        // CHANGED: Math.max ensures it never drops below 2 fields during edit
         setMembers(Array.from({length: Math.max(2, count)}, (_, i) => i + 1));
         
         formRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -248,8 +260,6 @@ export default function App() {
   };
 
   const addMember = () => members.length < 5 && setMembers([...members, members.length + 1]);
-  
-  // CHANGED: Only allow removing if there are more than 2 members
   const removeMember = () => members.length > 2 && setMembers(members.slice(0, -1));
 
   const overlayAlpha = 0.4 + (scrollProgress * 0.4);
@@ -272,7 +282,6 @@ export default function App() {
       <div className="relative z-10 max-w-4xl mx-auto py-20 px-6">
         
         <header className="text-center mb-32 h-[90vh] flex flex-col justify-center items-center w-full">
-          {/* The fix: text-[10vw] for mobile, scaling up gracefully on larger screens */}
           <h1 className="text-[10vw] sm:text-6xl md:text-8xl lg:text-9xl font-black italic tracking-tighter text-white drop-shadow-[0_15px_40px_rgba(0,0,0,1)] uppercase leading-none whitespace-nowrap">
             RETRO<span className="text-pink-500">HACK</span>
           </h1>
@@ -307,12 +316,24 @@ export default function App() {
                 <InputField label="Team Name" name="TeamName" placeholder="ENTER TEAM NAME" required={true}/>
                 <InputField label="Campus Name" name="CampusName" placeholder="ENTER CAMPUS NAME" required={true}/>
               </div>
+
               {!isEditMode && (
                 <div className="mt-2 border-t border-white/10 pt-4">
                    <p className="text-[9px] text-pink-400 mb-2 uppercase tracking-widest font-bold">Create a Secret PIN to edit your form later</p>
                    <InputField label="Secret Edit PIN" name="Edit_PIN" type="password" placeholder="e.g. 4040" required={true} maxLength={6}/>
                 </div>
               )}
+
+              {/* NEW: Project Idea Submission Field */}
+              <div className="mt-2 border-t border-white/10 pt-4">
+                 <TextAreaField 
+                   label="Project Idea Submission" 
+                   name="Project_Idea" 
+                   placeholder="Describe your hackathon idea, tech stack, or problem statement..." 
+                   required={true} 
+                   rows={4}
+                 />
+              </div>
             </div>
 
             {members.map((num) => (
@@ -339,7 +360,6 @@ export default function App() {
                     + Add Member ({members.length}/5)
                   </button>
                 )}
-                {/* CHANGED: Condition ensures button only shows if there are more than 2 members */}
                 {members.length > 2 && (
                   <button type="button" onClick={removeMember} className="flex-1 bg-red-500/10 border border-red-500/20 text-red-400 py-4 rounded-xl hover:bg-red-500/20 transition-all text-[9px] font-bold tracking-widest uppercase active:scale-95">
                     - Remove Member
