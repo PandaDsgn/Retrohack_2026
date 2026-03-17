@@ -86,7 +86,8 @@ const GlassCard = ({ title, color, children, delay }) => (
   </div>
 );
 
-const InputField = ({ label, placeholder, type = "text", required, name, maxLength }) => (
+// CHANGED: Added defaultValue prop
+const InputField = ({ label, placeholder, type = "text", required, name, maxLength, defaultValue }) => (
   <div className="flex flex-col gap-2 w-full">
     <label className="text-[8px] uppercase tracking-widest text-white/60 ml-1">
       {label} {required && <span className="text-pink-500">*</span>}
@@ -97,13 +98,14 @@ const InputField = ({ label, placeholder, type = "text", required, name, maxLeng
       placeholder={placeholder} 
       required={required}
       maxLength={maxLength}
+      defaultValue={defaultValue} // This tells React to fill the data upon creation
       className="bg-black/40 border border-white/10 rounded-xl p-3 text-white outline-none focus:border-cyan-400 transition-all placeholder:opacity-20 text-[10px] w-full" 
     />
   </div>
 );
 
-// NEW: TextArea component for the Idea Submission
-const TextAreaField = ({ label, placeholder, required, name, rows = 4 }) => (
+// CHANGED: Added defaultValue prop
+const TextAreaField = ({ label, placeholder, required, name, rows = 4, defaultValue }) => (
   <div className="flex flex-col gap-2 w-full">
     <label className="text-[8px] uppercase tracking-widest text-white/60 ml-1">
       {label} {required && <span className="text-pink-500">*</span>}
@@ -113,6 +115,7 @@ const TextAreaField = ({ label, placeholder, required, name, rows = 4 }) => (
       placeholder={placeholder} 
       required={required}
       rows={rows}
+      defaultValue={defaultValue} // This tells React to fill the data upon creation
       className="bg-black/40 border border-white/10 rounded-xl p-3 text-white outline-none focus:border-cyan-400 transition-all placeholder:opacity-20 text-[10px] w-full resize-none" 
     />
   </div>
@@ -128,6 +131,9 @@ export default function App() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [leaderEmail, setLeaderEmail] = useState('');
   const [editPin, setEditPin] = useState('');
+  
+  // NEW: State to hold the backend data so React can pass it to the inputs naturally
+  const [initialData, setInitialData] = useState({});
   
   const formRef = useRef(null);
 
@@ -176,6 +182,7 @@ export default function App() {
         setLeaderEmail('');
         setEditPin('');
         setMembers([1, 2]); 
+        setInitialData({}); // Clear out the data on success
       } else {
         throw new Error(result.message || "Operation failed");
       }
@@ -204,22 +211,27 @@ export default function App() {
       
       if (result.status === 'success') {
         setStatus('idle');
-        setIsEditMode(true);
         
+        // 1. Store the raw data into state immediately
         const data = result.data;
-        if (formRef.current) {
-          Object.keys(data).forEach(key => {
-            if (formRef.current.elements[key]) {
-              formRef.current.elements[key].value = data[key];
-            }
-          });
+        setInitialData(data);
+        
+        // 2. Count the members
+        let count = 1;
+        while(data[`Member${count+1}_Name`] && data[`Member${count+1}_Name`].toString().trim() !== "") {
+          count++;
         }
         
-        let count = 1;
-        while(data[`Member${count+1}_Name`]) count++;
+        // 3. Update the member count, which triggers React to build the inputs
         setMembers(Array.from({length: Math.max(2, count)}, (_, i) => i + 1));
         
-        formRef.current?.scrollIntoView({ behavior: 'smooth' });
+        // 4. Switch to edit mode
+        setIsEditMode(true);
+        
+        setTimeout(() => {
+          formRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+
       } else {
         throw new Error(result.message);
       }
@@ -313,8 +325,8 @@ export default function App() {
           <form ref={formRef} className="space-y-12" onSubmit={handleSubmit}>
             <div className="p-6 bg-white/5 border border-white/20 rounded-2xl flex flex-col gap-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <InputField label="Team Name" name="TeamName" placeholder="ENTER TEAM NAME" required={true}/>
-                <InputField label="Campus Name" name="CampusName" placeholder="ENTER CAMPUS NAME" required={true}/>
+                <InputField label="Team Name" name="TeamName" placeholder="ENTER TEAM NAME" required={true} defaultValue={initialData.TeamName || ''}/>
+                <InputField label="Campus Name" name="CampusName" placeholder="ENTER CAMPUS NAME" required={true} defaultValue={initialData.CampusName || ''}/>
               </div>
 
               {!isEditMode && (
@@ -324,7 +336,6 @@ export default function App() {
                 </div>
               )}
 
-              {/* NEW: Project Idea Submission Field */}
               <div className="mt-2 border-t border-white/10 pt-4">
                  <TextAreaField 
                    label="Project Idea Submission" 
@@ -332,10 +343,12 @@ export default function App() {
                    placeholder="Describe your hackathon idea, tech stack, or problem statement..." 
                    required={true} 
                    rows={4}
+                   defaultValue={initialData.Project_Idea || ''}
                  />
               </div>
             </div>
 
+            {/* REACT MAGIC: Because we use defaultValue={initialData[...] || ''}, React instantly fills these inputs the moment it draws them, even for Members 3, 4, and 5! */}
             {members.map((num) => (
               <div key={num} className="space-y-8 pt-10 border-t border-white/30 first:border-t-0 first:pt-0">
                 <div className="flex justify-between items-center">
@@ -343,12 +356,12 @@ export default function App() {
                   {num === 1 && <span className="text-[10px] border border-green-500 text-green-500 px-2 py-1 rounded tracking-tighter bg-green-500/10 font-bold">TEAM_LEADER</span>}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <InputField label="Name" name={`Member${num}_Name`} placeholder="Full Name" required={true}/>
-                  <InputField label="Email" name={`Member${num}_Email`} placeholder="e.g. johndoe@example.com" type="email" required={true}/>
-                  <InputField label="Mobile" name={`Member${num}_Mobile`} placeholder="Contact No." required={true}/>
-                  <InputField label="Year" name={`Member${num}_Year`} placeholder="e.g. 2nd Year" required={true}/>
-                  <InputField label="Department" name={`Member${num}_Dept`} placeholder="e.g. CSE" required={true}/>
-                  <InputField label="Enrolment ID" name={`Member${num}_ID`} placeholder="Registration No." required={true}/>
+                  <InputField label="Name" name={`Member${num}_Name`} placeholder="Full Name" required={true} defaultValue={initialData[`Member${num}_Name`] || ''}/>
+                  <InputField label="Email" name={`Member${num}_Email`} placeholder="e.g. johndoe@example.com" type="email" required={true} defaultValue={initialData[`Member${num}_Email`] || ''}/>
+                  <InputField label="Mobile" name={`Member${num}_Mobile`} placeholder="Contact No." required={true} defaultValue={initialData[`Member${num}_Mobile`] || ''}/>
+                  <InputField label="Year" name={`Member${num}_Year`} placeholder="e.g. 2nd Year" required={true} defaultValue={initialData[`Member${num}_Year`] || ''}/>
+                  <InputField label="Department" name={`Member${num}_Dept`} placeholder="e.g. CSE" required={true} defaultValue={initialData[`Member${num}_Dept`] || ''}/>
+                  <InputField label="Enrolment ID" name={`Member${num}_ID`} placeholder="Registration No." required={true} defaultValue={initialData[`Member${num}_ID`] || ''}/>
                 </div>
               </div>
             ))}
