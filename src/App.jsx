@@ -4,7 +4,7 @@ const Countdown = () => {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, mins: 0, secs: 0 });
 
   useEffect(() => {
-    const target = new Date("March 28, 2026 09:00:00").getTime();
+    const target = new Date("April 13, 2026 09:00:00").getTime();
     const interval = setInterval(() => {
       const now = new Date().getTime();
       const difference = target - now;
